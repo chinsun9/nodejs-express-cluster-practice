@@ -53,6 +53,8 @@ node server
 
 - 잘 서빙하는지 확인
 
+## 클러스터 구성
+
 ```
 npm i uuid
 ```
@@ -159,3 +161,70 @@ else if (cluster.isWorker) {
   마스터는 미리 정해진 개수만큼 워커를 생성하고 만약 죽은 워커가 발견된 경우 새 워커를 생성시켜 항상 일정 개수의 워커가 서버에서 동작할 수 있도록 합니다.
   워커는 express 서버를 구동합니다.
   워커에는 어느 서버에서 수행되고 있는지 확인할 수 있는 기능과 현재 워커를 죽일 수 있는 기능이 추가되었습니다.
+
+## 도커로 서버 구동
+
+```Dockerfile my-react/Dockerfile
+FROM node:slim
+
+# app 폴더 생성.
+RUN mkdir -p /app
+
+# 작업 폴더를 app폴더로 지정.
+WORKDIR /app
+
+# dockerfile과 같은 경로의 파일들을 app폴더로 복사
+ADD ./ /app
+
+# 패키지 파일 설치.
+RUN npm install
+
+# 환경을 배포 환경으로 변경.
+ENV NODE_ENV=production
+
+#빌드 수행
+RUN npm run build
+
+ENV HOST=0.0.0.0 PORT=3000
+EXPOSE ${PORT}
+
+#서버 실행
+CMD ["node", "server"]
+```
+
+- Dockerfile 생성
+
+```
+docker build . -t my-react:0.0.1
+```
+
+- 이미지 생성
+
+```
+Step 5/10 : RUN npm install
+ ---> Running in 659aad486ae1
+npm ERR! Object for dependency "@babel/generator" is empty.
+npm ERR! Something went wrong. Regenerate the package-lock.json with "npm install".
+npm ERR! If using a shrinkwrap, regenerate with "npm shrinkwrap".
+
+npm ERR! A complete log of this run can be found in:
+npm ERR!     /root/.npm/_logs/2020-10-21T08_10_46_045Z-debug.log
+The command '/bin/sh -c npm install' returned a non-zero code: 1
+```
+
+- 이미지 생성 중 발생한 오류.
+- https://stackoverflow.com/questions/63321707/react-npm-install-fails
+
+- node_modules, package-lock.json 삭제
+
+```cmd cmd
+npm i
+```
+
+- 다시 설치
+
+```
+docker run -itd -p 8080:3000 my-react:0.0.1
+```
+
+- localhost:8080 접속
