@@ -1,0 +1,16 @@
+# docker-compose.yml
+
+version: '3'
+services:
+  my-react-A:
+    image: my-react:0.0.1
+    ports:
+      - '3000:3000'
+  my-react-B:
+    image: my-react:0.0.1
+    ports:
+      - '3001:3000'
+  nginx:
+    image: my-nginx:0.0.1
+    ports:
+      - '8080:8080'

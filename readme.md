@@ -1,6 +1,8 @@
 # nodejs-express-cluster-practice
 
-- [Express를 이용한 서버 클러스터 구성](https://smoh.tistory.com/339) 보고 따라하였습니다.
+- [Express를 이용한 서버 클러스터 구성](https://smoh.tistory.com/339)
+- [Nginx를 이용한 이중화와 Docker-compose를 통한 배포](https://smoh.tistory.com/340)
+- 을 보고 따라하였습니다.
 
 ## 웹서버 생성
 
@@ -238,3 +240,109 @@ docker run -itd -p 8080:3000 my-react:0.0.1
 - /where, /kill 테스트해보기
 
 ![result](/readmeRes/result.jpg)
+
+## nginx 이용하기
+
+```conf my-nginx/nginx/nginx.conf
+#./nginx/nginx.conf
+
+user  nginx;
+worker_processes  1;
+
+error_log  /var/log/nginx/error.log warn;
+pid        /var/run/nginx.pid;
+
+
+events {
+    worker_connections  1024;
+}
+
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+
+    access_log  /var/log/nginx/access.log  main;
+
+    sendfile        on;
+    #tcp_nopush     on;
+
+    keepalive_timeout  65;
+
+    #gzip  on;
+
+    include /etc/nginx/conf.d/*.conf;
+}
+```
+
+- my-nginx/nginx/nginx.conf 생성
+
+```conf my-nginx/nginx/conf.d/my-react-lb.conf
+# ./nginx/conf.d/my-react-lb.conf
+
+upstream my-react {
+    #least_conn;
+    #ip_hash;
+    server my-react-A:3000 weight=10 max_fails=3 fail_timeout=10s;
+    server my-react-B:3000 weight=10 max_fails=3 fail_timeout=10s;
+}
+server {
+    listen                8080;
+    server_name  localhost;
+    location / {
+        proxy_pass http://my-react;
+    }
+}
+```
+
+- my-nginx/nginx/conf.d/my-react-lb.conf 생성
+
+```Dockerfile my-nginx/Dockerfile
+# ./Dockerfile
+
+FROM nginx:stable
+
+COPY ./nginx/nginx.conf /etc/nginx/nginx.conf
+COPY ./nginx/conf.d/my-react-lb.conf /etc/nginx/conf.d/my-react-lb.conf
+
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+- my-nginx/Dockerfile 작성
+
+```cmd cmd
+docker build . -t my-nginx:0.0.1
+```
+
+- nginx 이미지 빌드
+
+```yml /docker-compose.yml
+# docker-compose.yml
+
+version: '3'
+services:
+  my-react-A:
+    image: my-react:0.0.1
+    ports:
+      - '3000:3000'
+  my-react-B:
+    image: my-react:0.0.1
+    ports:
+      - '3001:3000'
+  nginx:
+    image: my-nginx:0.0.1
+    ports:
+      - '8080:8080'
+```
+
+- /docker-compose.yml 생성
+
+```
+docker-compoase up -d
+```
+
+- docker-compoase로 실행
