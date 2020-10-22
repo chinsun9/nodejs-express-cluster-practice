@@ -342,7 +342,19 @@ services:
 - /docker-compose.yml 생성
 
 ```
-docker-compoase up -d
+docker-compose up -d
 ```
 
-- docker-compoase로 실행
+- docker-compose로 실행
+
+```
+localhost:8080 접속해 확인
+```
+
+![ ](readmeRes/result2.jpg)
+![ ](readmeRes/result3.jpg)
+
+- 결과
+- 새로고침마다 서버정보가 바뀌는걸 확인할 수 있다.
+- 세션정보가 날아가기 때문에 ip_hash와 least_conn옵션을 켜고 서버를 배포해야 한다.
+- 예제출처: https://smoh.tistory.com/340 [Simple is Beautiful.]
